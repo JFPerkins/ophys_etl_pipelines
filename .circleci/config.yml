@@ -1,16 +1,7 @@
 orbs:
   python: circleci/python@0.3
-  singorb: singularity/singularity@1.0.0
+  singularity: singularity/singularity@1.0.0
 jobs:
-  singularity-build:
-    executor: python/default
-    steps:
-      - checkout
-      - singorb/build_container_custom_3:
-          go-version: '1.13'
-          singularity-version: 3.5.0
-          from-uri: 'src/ophys_etl/transforms/suite2p_container.def'
-          image: myimage.sif
   build:
     executor: python/default
     steps:
@@ -43,6 +34,8 @@ version: 2.1
 workflows:
   main:
     jobs:
-      - singularity-build
+      - singularity/install_debian_3:
+          go-version: '1.13'
+          singularity-version: 3.5.0
       - build
       - lint
