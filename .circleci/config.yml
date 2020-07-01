@@ -2,6 +2,7 @@ version: 2.1
 orbs:
   singularity: singularity/singularity@1.0.0
 workflows:
+  version: 2
   install_debian_3_example:
     jobs:
       - singularity/install_debian_3:
