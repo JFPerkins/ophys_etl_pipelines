@@ -10,7 +10,7 @@ jobs:
           go-version: '1.13'
       - singularity/debian-install-3:
           singularity-version: 3.5.0
-      - build-image:
+      - singularity/build-image:
           from-uri: src/ophys_etl/transforms/suite2p_container.def
           image: suite2p_container.img
 workflows:
