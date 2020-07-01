@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  singularity: singularity/singularity@1.0.0
+  singularity: singularity/singularity@1.0.10
 jobs:
   sbuild:
     executor: machine
