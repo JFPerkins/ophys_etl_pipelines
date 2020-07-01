@@ -1,5 +1,6 @@
 jobs:
   singularity-build:
+    executor: python/default
     steps:
       - checkout
       - singularity/build_container_custom_3:
