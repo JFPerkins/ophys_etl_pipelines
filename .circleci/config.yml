@@ -21,6 +21,10 @@ jobs:
             fi
             if [ -f "$BASH_ENV" ]; then source $BASH_ENV; fi
             $SUDO SINGULARITYENV_OPHYS_ETL_TAG=${CIRCLE_BRANCH} singularity build suite2p_container.img src/ophys_etl/transforms/suite2p_container.def
+      - run:
+          name: Run Singularity Container
+          command: |
+            singularity run ./suite2p_container.img python -m ophys_etl.suite2p_wrapper --help
 workflows:
   install_debian_3_example:
     jobs:
