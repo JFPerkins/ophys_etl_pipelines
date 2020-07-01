@@ -1,3 +1,6 @@
+orbs:
+  python: circleci/python@0.3
+  singularity: singularity/singularity@1.0.0
 jobs:
   singularity-build:
     executor: python/default
@@ -36,9 +39,6 @@ jobs:
             echo ${CHANGED_PYFILES} | xargs -r flake8 --count
           name: Lint
 
-orbs:
-  python: circleci/python@0.3
-  singularity: singularity/singularity@1.0.0
 version: 2.1
 workflows:
   main:
