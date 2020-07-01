@@ -1,9 +1,14 @@
 version: 2.1
 orbs:
   singularity: singularity/singularity@1.0.10
-workflows:
-  install_debian_3_example:
-    jobs:
+jobs:
+  sbuild:
+    executor: machine
+    steps:
       - singularity/install_debian_3:
           go-version: '1.13'
           singularity-version: 3.5.0
+workflows:
+  install_debian_3_example:
+    jobs:
+      - sbuild
