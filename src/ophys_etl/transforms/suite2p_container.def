@@ -17,23 +17,23 @@ From: continuumio/miniconda3:4.8.2
     echo "export CONDA_BASE=\"${CONDA_BASE}\"" >> $SINGULARITY_ENVIRONMENT
 
     # install Suite2P
-    apt-get install -y libgl1-mesa-glx
+    apt-get install -q -y libgl1-mesa-glx
     git clone https://github.com/MouseLand/suite2p
     cd suite2p
     git checkout ${SUITE2P_TAG}
-    conda env create -f environment.yml
+    conda env create -q -f environment.yml
     conda activate suite2p
-    pip install .
+    pip install -q .
 
     # install ophys_etl_pipelines
     cd ../
     git clone https://github.com/AllenInstitute/ophys_etl_pipelines
     cd ophys_etl_pipelines
     git checkout ${OPHYS_ETL_TAG}
-    pip install .
+    pip install -q .
 
     # clean up
-    conda clean --all
+    conda clean -q --all
     cd ../
     rm -rf suite2p
     rm -rf ophys_etl_pipelines
