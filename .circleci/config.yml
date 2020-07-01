@@ -2,7 +2,7 @@ version: 2.1
 orbs:
   singularity: singularity/singularity@1.0.10
 jobs:
-  sbuild:
+  singularity-image:
     executor: singularity/machine
     steps:
       - checkout
@@ -25,7 +25,17 @@ jobs:
           name: Run Singularity Container
           command: |
             singularity run ./suite2p_container.img python -m ophys_etl.transforms.suite2p_wrapper --help
+      - run:
+          name: Upload Singularity Image
+          command: |
+            echo ${SYLABS_TOKEN} | singularity remote login
+            singularity push suite2p_container.img library://allen_institute_pika/ophys_etl_pipelines/suite2p_container.img:${CIRCLE_BRANCH}
 workflows:
   install_debian_3_example:
     jobs:
-      - sbuild
+      - singularity-image
+        filters:
+            branches:
+              only:
+                - master
+                - /*singularity*/
