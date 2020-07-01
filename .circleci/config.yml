@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Run Singularity Container
           command: |
-            singularity run ./suite2p_container.img python -m ophys_etl.suite2p_wrapper --help
+            singularity run ./suite2p_container.img python -m ophys_etl.transforms.suite2p_wrapper --help
 workflows:
   install_debian_3_example:
     jobs:
