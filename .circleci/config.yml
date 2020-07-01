@@ -1,41 +1,9 @@
-orbs:
-  python: circleci/python@0.3
-  singularity: singularity/singularity@1.0.0
-jobs:
-  build:
-    executor: python/default
-    steps:
-      - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
-      - run:
-          command: |
-            pip install .
-            # pytest would be a dep in requirements.txt
-            python -m pytest --cov ophys_etl --cov-report xml
-            bash <(curl -s https://codecov.io/bash) -t ${CODECOV_TOKEN}
-          name: Test
-  lint:
-    executor: python/default
-    steps:
-      - checkout
-      - run: 
-          command: |
-            pip install flake8
-            # `|| true` to force exit code 0 even if no files found
-            CHANGED_PYFILES=$(git diff --diff-filter AMR --name-only origin/master | grep .py || true)
-            echo "List of changed files:"
-            echo ${CHANGED_PYFILES}
-            echo ${CHANGED_PYFILES} | xargs -r flake8 --count
-          name: Lint
-
 version: 2.1
+orbs:
+  singularity: singularity/singularity@1.0.0
 workflows:
-  main:
+  install_debian_3_example:
     jobs:
       - singularity/install_debian_3:
           go-version: '1.13'
-          singularity-version: 3.5.0
-      - build
-      - lint
+          singularity-version: 3.5.0version: 2.1
