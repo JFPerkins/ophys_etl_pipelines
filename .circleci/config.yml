@@ -29,7 +29,7 @@ jobs:
           name: Upload Singularity Image
           command: |
             echo ${SYLABS_TOKEN} | singularity remote login
-            singularity push suite2p_container.img library://allen_institute_pika/ophys_etl_pipelines/suite2p_container.img:${CIRCLE_BRANCH}
+            singularity push -U suite2p_container.img library://allen_institute_pika/ophys_etl_pipelines/suite2p_container.img:${CIRCLE_BRANCH}
 workflows:
   install_debian_3_example:
     jobs:
