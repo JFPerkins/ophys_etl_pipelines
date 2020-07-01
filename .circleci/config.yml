@@ -1,4 +1,12 @@
 jobs:
+  singularity-build:
+    steps:
+      - checkout
+      - singularity/build_container_custom_3:
+          go-version: '1.13'
+          singularity-version: 3.5.0
+          from-uri: 'src/ophys_etl/transforms/suite2p_container.def'
+          image: myimage.sif
   build:
     executor: python/default
     steps:
@@ -29,9 +37,11 @@ jobs:
 
 orbs:
   python: circleci/python@0.3
+  singularity: singularity/singularity@1.0.0
 version: 2.1
 workflows:
   main:
     jobs:
+      - singularity-build
       - build
       - lint
