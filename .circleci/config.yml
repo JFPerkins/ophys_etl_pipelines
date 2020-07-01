@@ -13,14 +13,14 @@ jobs:
       - run:
           # copied from singularity/build-image to add branch-specific build
           name: Build Singularity Container
-            command: |
-              NOSUDO=false
-              which sudo || NOSUDO=true
-              if [[ "$NOSUDO" == "false" ]]; then
-                  if [[ $EUID == 0 ]]; then export SUDO=""; else export SUDO="sudo"; fi
-              fi
-              if [ -f "$BASH_ENV" ]; then source $BASH_ENV; fi
-              $SUDO SINGULARITYENV_OPHYS_ETL_TAG=${CIRCLE_BRANCH} singularity build suite2p_container.img src/ophys_etl/transforms/suite2p_container.def
+          command: |
+            NOSUDO=false
+            which sudo || NOSUDO=true
+            if [[ "$NOSUDO" == "false" ]]; then
+                if [[ $EUID == 0 ]]; then export SUDO=""; else export SUDO="sudo"; fi
+            fi
+            if [ -f "$BASH_ENV" ]; then source $BASH_ENV; fi
+            $SUDO SINGULARITYENV_OPHYS_ETL_TAG=${CIRCLE_BRANCH} singularity build suite2p_container.img src/ophys_etl/transforms/suite2p_container.def
 workflows:
   install_debian_3_example:
     jobs:
