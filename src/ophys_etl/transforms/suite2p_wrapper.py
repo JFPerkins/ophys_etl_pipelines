@@ -86,6 +86,7 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
                          "to be filtered by a classifier."))
     max_overlap = argschema.fields.Float(
             default=0.75,
+            allow_none=True,
             description=("Cells with more overlap than this get removed "
                          "during triage, before refinement. Suite2P default."))
     high_pass = argschema.fields.Int(
