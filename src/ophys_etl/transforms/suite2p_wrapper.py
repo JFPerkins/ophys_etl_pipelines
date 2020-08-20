@@ -85,7 +85,7 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
                          "number of non-cells also are segmented, and need "
                          "to be filtered by a classifier."))
     max_overlap = argschema.fields.Float(
-            default=0.75,
+            default=None,
             allow_none=True,
             description=("Cells with more overlap than this get removed "
                          "during triage, before refinement. Suite2P default."))
