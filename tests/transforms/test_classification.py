@@ -393,9 +393,9 @@ def test_filter_excluded_rois(rois):
      np.arange(100).reshape((5, 20))[[4, 2, 0, 3, 1]]),
 
     # Case: ROI id order does not match order of trace "roi_names" (variant 3)
-    ([{"id": 3}, {"id": 20}, {"id": 10}, {"id": 200}, {"id": 100}],
+    ([{"id": 1044709568}, {"id": 20}, {"id": 10}, {"id": 200}, {"id": 100}],
      {"trace_data": np.arange(100).reshape((5, 20)),
-      "trace_names": ['100', '20', '10', '200', '3']},
+      "trace_names": ['100', '20', '10', '200', '1044709568']},
      np.arange(100).reshape((5, 20))[[4, 1, 2, 3, 0]]),
 
 ], indirect=["trace_file_fixture"])
