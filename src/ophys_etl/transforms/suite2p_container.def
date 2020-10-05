@@ -27,9 +27,9 @@ From: continuumio/miniconda3:4.8.2
 
     # install Suite2P
     apt-get install -q -y libgl1-mesa-glx
-    git clone https://github.com/MouseLand/suite2p
+    git clone https://github.com/djkapner/suite2p
     cd suite2p
-    git checkout ${SUITE2P_TAG}
+    git checkout feature/parametrize_activity_threshold
     conda env create -q -f environment.yml
     conda activate suite2p
     pip install --no-cache-dir -q .

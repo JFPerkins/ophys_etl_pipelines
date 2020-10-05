@@ -84,6 +84,10 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
                          "but higher values tended to miss some. A fair "
                          "number of non-cells also are segmented, and need "
                          "to be filtered by a classifier."))
+    activity_threshold_factor = argschema.fields.Float(
+            default=0.2,
+            description=("adjusts the level of accepted pixels relative "
+                         "to maximum weight. Lower value accepts more."))
     max_overlap = argschema.fields.Float(
             default=0.75,
             description=("Cells with more overlap than this get removed "
