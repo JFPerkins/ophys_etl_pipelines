@@ -13,7 +13,7 @@ From: continuumio/miniconda3:4.8.2
 %post
     # these can be set during build like
     # sudo SINGULARITYENV_SUITE2P_TAG=0.7.5 singularity build ...
-    SUITE2P_TAG=${SUITE2P_TAG:-0.7.5}
+    SUITE2P_TAG=${SUITE2P_TAG:feature/activity_threshold_current}
     OPHYS_ETL_TAG=${OPHYS_ETL_TAG:-master}
 
     export PATH=/opt/conda/bin:${PATH}
@@ -27,7 +27,7 @@ From: continuumio/miniconda3:4.8.2
 
     # install Suite2P
     apt-get install -q -y libgl1-mesa-glx
-    git clone https://github.com/MouseLand/suite2p
+    git clone https://github.com/djkapner/suite2p
     cd suite2p
     git checkout ${SUITE2P_TAG}
     conda env create -q -f environment.yml
