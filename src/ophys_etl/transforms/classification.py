@@ -278,6 +278,7 @@ def downsample(trace: np.ndarray, input_fps: int, output_fps: int):
     background_values = np.median(trace, axis=0, keepdims=True)
     trace = trace - background_values
     downsample = resample_poly(trace, up, down, axis=0)
+    downsample += background_values
     return downsample
 
 
