@@ -273,7 +273,11 @@ def downsample(trace: np.ndarray, input_fps: int, output_fps: int):
     gcd = math.gcd(input_fps, output_fps)
     up = output_fps / gcd
     down = input_fps / gcd
-    downsample = resample_poly(trace, up, down, axis=0, padtype="median")
+    # explicit padtype because Suite2P forcing singularity env to
+    # scipy 1.2.1. see code for resample_poly in scipy 1.5.2 for example
+    background_values = np.median(trace, axis=0, keepdims=True)
+    trace = trace - background_values
+    downsample = resample_poly(trace, up, down, axis=0)
     return downsample
 
 
