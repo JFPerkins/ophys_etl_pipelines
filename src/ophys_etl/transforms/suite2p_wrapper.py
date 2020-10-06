@@ -100,6 +100,11 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
                          "detection. Especially useful if one is in a high "
                          "noise regime. It appears this is only applicable "
                          "with sparse_mode=False, which is not our default."))
+    fraction_maxlam_threshold = argschema.fields.Float(
+            default=0.2,
+            description=("pixels with activity >= max(lam) * <this value> "
+                         "will be considered active. Lower values include "
+                         "more pixels in ROIs."))
     # s2p ROI extraction parameters
     inner_neuropil_radius = argschema.fields.Int(
             default=2,
