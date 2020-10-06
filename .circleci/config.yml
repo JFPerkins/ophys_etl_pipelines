@@ -30,7 +30,7 @@ jobs:
           name: Run Singularity Container Smoke Test
           command: |
             mkdir smoke_output
-            singularity run ./suite2p_container.img python -m ophys_etl.transforms.suite2p_wrapper --h5py tests/transforms/resources/movie_100x100x100.h5 --output_dir smoke_output --bin_size 10 --log_level INFO --output_json smoke_output/output.json
+            singularity run ./suite2p_container.img python -m ophys_etl.transforms.suite2p_wrapper --h5py tests/transforms/resources/movie_100x100x100.h5 --output_dir smoke_output --bin_size 10 --log_level INFO --output_json smoke_output/output.json --spatial_scale 1
       - run:
           name: Upload Singularity Image
           command: |
