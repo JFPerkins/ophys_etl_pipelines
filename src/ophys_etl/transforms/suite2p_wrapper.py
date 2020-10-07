@@ -103,6 +103,11 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
             description=("pixels with activity >= max(lam) * <this value> "
                          "will be considered active. Lower values include "
                          "more pixels in ROIs."))
+    legacy_spatial = argschema.fields.Bool(
+            default=True,
+            description=("has Suite2P ignore highest resolution layer of "
+                         "image pyramid in determining spatial scale. If "
+                         "set to False, 15% of experiments have ValueError"))
     # s2p ROI extraction parameters
     inner_neuropil_radius = argschema.fields.Int(
             default=2,
