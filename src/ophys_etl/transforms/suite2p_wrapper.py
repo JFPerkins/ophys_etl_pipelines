@@ -70,9 +70,11 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
                          "Suite2P default."))
     nbinned = argschema.fields.Int(
             required=False,
-            description=("Max num of binned frames for cell detection. Below "
-                         "is an Allen-specific parameter `bin_size` from "
-                         "which this setting is derived, if not provided."))
+            description=("Max num of binned frames for cell detection. "
+                         "Below are Allen-specific parameters "
+                         "`bin_duration + movie_frame_rate` "
+                         "from which this setting can be derived, if "
+                         "not provided."))
     max_iterations = argschema.fields.Int(
             default=20,
             description="Max num iterations to detect cells. Suite2P default")
@@ -129,11 +131,23 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
                          "run a demixing step that should allow both ROIs "
                          "to share pixels."))
     # Allen-specific options
-    bin_size = argschema.fields.Int(
+    movie_frame_rate = argschema.fields.Float(
             required=False,
-            description=("If nbinned not provided, will calculate nbinned as "
-                         "nframes / bin_size. This allows consistent temporal "
-                         "downsampling across movies of different lengths."))
+            description=("The frame rate (in Hz) of the optical physiology "
+                         "movie to be Suite2P segmented. Used in conjunction "
+                         "with 'bin_duration' to derive an 'nbinned' "
+                         "Suite2P value."))
+    bin_duration = argschema.fields.Float(
+            required=False,
+            default=3.7,
+            description=("The duration of time (in seconds) that should be "
+                         "considered 1 bin for Suite2P ROI detection "
+                         "purposes. Requires a valid value for "
+                         "'movie_frame_rate' in order to derive an "
+                         "'nbinned' Suite2P value. This allows "
+                         "consistent temporal downsampling across movies "
+                         "with different lengths and/or frame rates. By "
+                         "default, 3.7 seconds."))
     output_dir = argschema.fields.OutputDir(
             required=True,
             description="for minimal and cleaner output, specifies output dir")
@@ -141,7 +155,7 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
             argschema.fields.Str,
             cli_as_single_argument=True,
             required=True,
-            default=['stat.npy', 'F.npy'],
+            default=['stat.npy'],
             description=("only Suite2P output files with basenames in this "
                          "list will be retained. If 'all', a complete list "
                          "will be retained."))
@@ -153,9 +167,9 @@ class Suite2PWrapperSchema(argschema.ArgSchema):
 
     @mm.post_load
     def check_args(self, data, **kwargs):
-        if ('nbinned' not in data) & ('bin_size' not in data):
+        if ('nbinned' not in data) & ('movie_frame_rate' not in data):
             raise Suite2PWrapperException(
-                    "must provide either `nbinned` or `bin_size`")
+                    "Must provide either `nbinned` or `movie_frame_rate`")
         return data
 
     @mm.post_load
@@ -231,13 +245,28 @@ class Suite2PWrapper(argschema.ArgSchemaParser):
         self.logger.name = type(self).__name__
         self.logger.setLevel(self.args.pop('log_level'))
 
-        # determine nbinned from bin_size
+        # determine nbinned from bin_duration and movie_frame_rate
         if 'nbinned' not in self.args:
             with h5py.File(self.args['h5py'], 'r') as f:
                 nframes = f['data'].shape[0]
-            self.args['nbinned'] = int(nframes / self.args['bin_size'])
-            self.logger.info(f"movie has {nframes} frames. Setting nbinned "
-                             f"to {self.args['nbinned']}")
+            bin_size = (self.args['bin_duration']
+                        * self.args['movie_frame_rate'])
+
+            if bin_size > nframes:
+                raise Suite2PWrapperException(
+                    f"The desired frame bin duration "
+                    f"({self.args['bin_duration']} "
+                    f"seconds) and movie frame rate "
+                    f"({self.args['movie_frame_rate']} Hz) results in a bin "
+                    f"size ({bin_size} frames) larger than the number of "
+                    f"actual frames in the movie ({nframes})!")
+
+            self.args['nbinned'] = int(nframes / bin_size)
+            self.logger.info(f"Movie has {nframes} frames collected at "
+                             f"{self.args['movie_frame_rate']} Hz. To get a "
+                             f"bin duration of {self.args['bin_duration']} "
+                             f"seconds, setting nbinned to "
+                             f"{self.args['nbinned']}.")
 
         # make a tempdir for Suite2P's output
         with tempfile.TemporaryDirectory() as tdir:
