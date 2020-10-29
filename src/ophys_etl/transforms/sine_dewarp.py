@@ -3,7 +3,7 @@ import os
 import h5py
 import math
 import time
-import allensdk.core.json_utilities as ju
+import ophys_etl.utilities.json_utilities as json
 import argparse
 import logging
 import multiprocessing
@@ -519,7 +519,7 @@ if __name__ == '__main__':
     else:
         logging.debug(f"noise_reduction: {args.noise_reduction}")
 
-    input_data = ju.read(args.input_json)
+    input_data = json.read(args.input_json)
     input_h5, output_h5, aL, aR, bL, bR = parse_input(input_data)
 
     logging.debug("got parameters from json")
@@ -549,4 +549,4 @@ if __name__ == '__main__':
     f['data'] = dewarped_video
     f.close()
 
-    ju.write(args.output_json, {})
+    json.write(args.output_json, {})
