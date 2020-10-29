@@ -32,7 +32,18 @@ valid_nr_methods = [0, 1, 2, 3]
 
 def mode(data):
     """
+    Compute the mode of a numpy array.
 
+    Parameters
+    ----------
+    data: np.ndarray
+        Numpy array containing data of which we will calculate the mode.
+    Returns
+    -------
+    list
+        All values which appear the most number of times
+    int
+        The number of times the mode values appear
     """
     counts = {}
 
@@ -49,16 +60,83 @@ def mode(data):
     return modelist, maxcount
 
 
+def noise_reduce(data, ind, xindex, noise_reduction):
+    """
+    Noise reduce a numpy array by one of several methods, specified by
+    the noise_reduction argument. The current acceptable values are:
+    - 0: Do nothing
+    - 1: Reduce the data value by 2 * sigma
+    - 2: Reduce the data value by sigma and also normalize it
+    - 3: Normalize the data value
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The data that will be noise reduced
+    ind: int
+        The index currently being noise reduced within the
+        larger dewarping process
+    xindex: np.array
+        ?
+    noise_reduction: int
+        The noise reduction method to use.
+    Returns
+    -------
+    np.ndarray
+        The data, of the sme shape as the input data, having had the
+        dewarping process applied to it
+    """
+    if 0 == noise_reduction:
+        pass
+
+    elif 1 == noise_reduction:
+        nf = (
+            2 * stdv_modevalue
+            * (xindex[ind] - xindex[ind - 1] - 1)
+        )
+
+        data = data - nf
+
+    elif 2 == noise_reduction:
+        nf = 1 * stdv_modevalue * (xindex[ind] - xindex[ind - 1] - 1)
+        data = (data / (xindex[ind] - xindex[ind - 1])) - nf
+
+    elif 3 == noise_reduction:
+        data = data / (xindex[ind] - xindex[ind - 1])
+
+    return data
+
+
 def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
     """
+    Dewarp a single numpy array based on the information
+    specified in table and noise_reduction.
 
+    Parameters
+    ----------
+    imgin: np.ndarray
+        The image that wil have the dewarping process applied to it.
+    FOVwidth: int
+        TODO Figure out what this is...it's kinda related
+        to differnt sized videos, but als not realy? Maybe
+        it's a bug, and those 512s should be replaced with FOVwidth.
+    xtable: dict
+        A dictionary containing a number of statistics about the data
+        to be dewarped, as well as various specifications for the process.
+    noise_reduction: int
+        The noise reduction method to use.
+    Returns
+    -------
+    np.ndarray
+        The data, of the sme shape as the input data, having had the
+        dewarping process applied to it
     """
 
     # Grab a few commonly used values from xtable to make code cleaner
-    xindexL = xtable.xindexL
-    xindexLB = xtable.xindexLB
-    xindexR = xtable.xindexR
-    xindexRB = xtable.xindexRB
+    xindexL = xtable['xindexL']
+    xindexLB = xtable['xindexLB']
+    xindexR = xtable['xindexR']
+    xindexRB = xtable['xindexRB']
 
     # Prepare a blank image
     imgout = np.zeros(imgin.shape)
@@ -83,23 +161,7 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
                     sum[:] = sum[:] + imgin[:, s+1]
 
                 # Perform the desired noise reduction method
-                if 0 == noise_reduction:
-                    pass
-
-                elif 1 == noise_reduction:
-                    nf = (
-                        2 * stdv_modevalue
-                        * (xindexLB[j] - xindexLB[j - 1] - 1)
-                    )
-
-                    sum = sum - nf
-
-                elif 2 == noise_reduction:
-                    nf = 1 * stdv_modevalue * (xindexLB[j] - xindexLB[j-1] - 1)
-                    sum = (sum / (xindexLB[j] - xindexLB[j-1])) - nf
-
-                elif 3 == noise_reduction:
-                    sum = sum / (xindexLB[j] - xindexLB[j-1])
+                sum = noise_reduce(sum, j, xindexLB, noise_reduce)
 
                 # TODO: Check on this. Make sure it wasn't an
                 # error in the orginal code
@@ -112,9 +174,9 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
 
                 imgout[:, j] = sum
             else:
-                imgout[:, j] = imgin[:, xindexL[j]] * xtable.bgfactorL
+                imgout[:, j] = imgin[:, xindexL[j]] * xtable['bgfactorL']
         else:
-            imgout[:, j] = xtable.mean_modevalue * xtable.bgfactorL
+            imgout[:, j] = xtable['mean_modevalue'] * xtable['bgfactorL']
 
     # Right side
     for j in range(0, (int(aR))):
@@ -133,23 +195,7 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
                     sum[:] = sum[:] + imgin[:, 511 - (s + 1)]
 
                 # Perform the desired noise reduction method
-                if 0 == noise_reduction:
-                    pass
-
-                elif 1 == noise_reduction:
-                    nf = 2 * stdv_modevalue * (xindexRB[j] - xindexRB[j-1] - 1)
-                    sum = sum - nf
-
-                elif 2 == noise_reduction:
-                    nf = 1 * stdv_modevalue * (xindexRB[j] - xindexRB[j-1] - 1)
-                    sum = (sum / (xindexRB[j] - xindexRB[j-1])) - nf
-
-                elif 3 == noise_reduction:
-                    sum = sum / (xindexRB[j] - xindexRB[j-1])
-
-                else:
-                    low_mask = None
-                    high_mask = (sum > maxlevel)
+                sum = noise_reduce(sum, j, xindexRB, noise_reduce)
 
                 # TODO: Check on this. Make sure it wasn't an
                 # error in the orginal code
@@ -164,66 +210,101 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
             else:
                 imgout[:, 511 - j] = (
                     imgin[:, 511 - xindexR[j]]
-                    * xtable.bgfactorR
+                    * xtable['bgfactorR']
                 )
         else:
-            imgout[:, 511 - j] = xtable.mean_modevalue * xtable.bgfactorR
+            imgout[:, 511 - j] = xtable['mean_modevalue'] * xtable['bgfactorR']
 
     if FOVwidth == 512:
         img = imgout.astype(np.uint16)
     else:
-        img = imgout[:, xtable.L:512 - xtable.R].astype(np.uint16)
+        img = imgout[:, xtable['L']:512 - xtable['R']].astype(np.uint16)
 
     return img
 
 
-def create_xtable(meanimg, stdvimg, aL, aR, bL, bR, noise_reduction):
+def get_xindex(a, b):
     """
+    Generate the xinxex arrays that will be used in the dewarping process.
 
+    Parameters
+    ----------
+    a: float
+        Information about the rig used for the experiment.
+    b: float
+        Information about the rig used for the experiment.
+    Returns
+    -------
+    np.array
+        The data ready to use in the dewarping process
+    np.array
+        The data ready to use in the dewarping process
     """
-    # assume flat area aL - (512-aR)
+    xindex = np.zeros(256, np.int)
+    xindexB = np.zeros(256, np.float)  # between pixels
 
-    xindexL = np.zeros(256, np.int)
-    xindexLB = np.zeros(256, np.float)  # between pixels
-    xindexR = np.zeros(256, np.int)
-    xindexRB = np.zeros(256, np.float)  # between pixels
-
-    # Left side
-    for j in range(0, int(aL)):
-        xindexL[j] = (
+    for j in range(0, int(a)):
+        xindex[j] = (
             j - int(
-                    (bL)
-                    * (1.0 - math.sin((j/(aL * 3.0) + 1.0/6.0) * 3.14159265))
+                    (b)
+                    * (1.0 - math.sin((j/(a * 3.0) + 1.0/6.0) * 3.14159265))
                     + 0.5
-                )  # ok
+                )
         )
 
         # TODO: Should these also use int()?
-        xindexLB[j] = (
+        xindexB[j] = (
             (j + 0.5) - (
-                (bL) * (1.0 - math.sin(
-                    ((j + 0.5)/(aL * 3.0) + 1.0 / 6.0) * 3.14159265
+                (b) * (1.0 - math.sin(
+                    ((j + 0.5)/(a * 3.0) + 1.0 / 6.0) * 3.14159265
                 ))
-            )  # ok
+            )
         )
+
+    return xindex, xindexB
+
+
+def create_xtable(movie, aL, aR, bL, bR, noise_reduction):
+    """
+    Compute a number of statistics about the images to be dewarped.
+
+    Parameters
+    ----------
+    meanimg: np.ndarray
+        The mean value for each pixel across the movie.
+    stdvimg: np.ndarray
+        The standard deviation for each pixel of the movie.
+    aL: float
+        Information about the rig used for the experiment.
+    aR: float
+        Information about the rig used for the experiment.
+    bL: float
+        Information about the rig used for the experiment.
+    bR: float
+        Information about the rig used for the experiment.
+    noise_reduction: int
+        The noise reduction method that will be used in dewarping.
+    Returns
+    -------
+    dict
+        Various computed information about the video.
+    """
+    # assume flat area aL - (512-aR)
+
+    meanimg = np.mean(movie, axis=0)  # use avgimg to compute mode
+    meanimg = meanimg/256          # less noisy to get mode from 8bit histogram
+    meanimg = meanimg.astype(int)  # less noisy to get mode from 8bit histogram
+
+    # full movie got Memory Error
+    stdvimg = np.std(movie[::8], axis=0)  # use avgimg to compute mode
+    stdvimg = stdvimg/256          # less noisy to get mode from 8bit histogram
+    stdvimg = stdvimg.astype(int)  # less noisy to get mode from 8bit histogram
+
+    # Left side
+    xindexL, xindexLB = get_xindex(aL, bL)
 
     # Right side
-    for j in range(0, int(aR)):
-        xindexR[j] = (
-            j - int(
-                (bR)
-                * (1.0 - math.sin((j/(aR * 3.0) + 1.0/6.0) * 3.14159265))
-                + 0.5)  # default
-        )
-
-        xindexRB[j] = (
-           (j + 0.5) - (
-               (bR) * (1.0 - math.sin(
-                   ((j+0.5)/(aR * 3.0) + 1.0 / 6.0) * 3.14159265
-                ))
-            )  # default
-        )
-        print(256 - j, j, xindexL[j], xindexLB[j], xindexR[j], xindexRB[j])
+    xindexR, xindexRB = get_xindex(aR, bR)
 
     modelist, mean_maxcount = mode(meanimg)
     mean_modevalue = modelist[0]
@@ -261,20 +342,12 @@ def create_xtable(meanimg, stdvimg, aL, aR, bL, bR, noise_reduction):
         bgfactorL = 1
         bgfactorR = 1
 
-    print('mean_modevalue=', mean_modevalue, 'mean_maxcount', mean_maxcount)
-    print('mean_minvalue=',  mean_minvalue)
-    print('stdv_modevalue=', stdv_modevalue, 'stdv_maxcount', stdv_maxcount)
-    print('stdv_minvalue=',  stdv_minvalue)
-    print('bgfactorL=', bgfactorL)
-    print('bgfactorR=', bgfactorR)
-    print('L R ', L, R)
-
-    return {
+    table = {
         "mean_modevalue": mean_modevalue,
         'mean_maxcount': mean_maxcount,
+        "mean_minvalue": mean_minvalue,
         "stdv_modevalue": stdv_modevalue,
         "stdv_maxcount": stdv_maxcount,
-        "mean_minvalue": mean_minvalue,
         "stdv_minvalue": stdv_minvalue,
         "bgfactorL": bgfactorL,
         "bgfactorR": bgfactorR,
@@ -285,11 +358,25 @@ def create_xtable(meanimg, stdvimg, aL, aR, bL, bR, noise_reduction):
         "xindexR": xindexR,
         "xindexRB": xindexRB
     }
+    logging.debug(table)
+
+    return table
 
 
 def parse_input(data):
     """
+    Compute a number of statistics about the images to be dewarped.
+
+    Parameters
+    ----------
+    data: json
+        Data from the input json file
+    Returns
+    -------
+    dict
+        Various computed information about the video.
     """
+
     input_h5 = data.get('input_h5', None)
     if input_h5 is None:
         raise KeyError("input JSON does not have required field: 'input_h5'")
@@ -325,9 +412,9 @@ def parse_input(data):
         raise KeyError(f"parameter bR not determined for {equipment_name}")
     bR = float(bRstr)
 
-    print(str(equipment_name))
-    print('aL bL', aL, bL)
-    print('aR bR', aR, bR)
+    logging.debug(str(equipment_name))
+    logging.debug('aL bL', aL, bL)
+    logging.debug('aR bR', aR, bR)
 
     return input_h5, output_h5, aL, aR, bL, bR
 
@@ -336,28 +423,28 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
                   input_file, input_dataset,
                   output_file, output_dataset):
     """
+    Gets information about the movie and the specified dewarping method,
+    then uses multiprocessing to dewarp each frame of the movie at once, while
+    tracking the progress.
 
+    Parameters
+    ----------
+    FOVwidth: int
+        ?
+    Returns
+    -------
     """
 
     # Get statistics about the movie
     input_h5_file = h5py.File(input_file, 'r')
     movie = input_h5_file[input_dataset]
-    meanimg = np.mean(movie, axis=0)  # use avgimg to compute mode
-    meanimg = meanimg/256          # less noisy to get mode from 8bit histogram
-    meanimg = meanimg.astype(int)  # less noisy to get mode from 8bit histogram
-
-    # full movie got Memory Error
-    stdvimg = np.std(movie[::8], axis=0)  # use avgimg to compute mode
-    stdvimg = stdvimg/256          # less noisy to get mode from 8bit histogram
-    stdvimg = stdvimg.astype(int)  # less noisy to get mode from 8bit histogram
 
     movie_shape = movie.shape
     movie_dtype = movie.dtype
     T, y_orig, x_orig = movie.shape
 
-    # need one frame from movie for mode
     # IMPORTANT!: estmated modevalue is from 8bit img but convert back to 16bit
-    xtable = create_xtable(meanimg, stdvimg, aL, aR, bL, bR, noise_reduction)
+    xtable = create_xtable(movie, aL, aR, bL, bR, noise_reduction)
 
     # Remove old output if it exists and create new output file
     if os.path.exists(output_file):
@@ -382,6 +469,7 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
         input_h5_file[input_dataset][frame, :, :] for frame in range(T)
     ]
 
+    # TODO: make sure that these get stored in the output in the correct order
     with multiprocessing.Pool(threads) as pool:
         fn = functools.partial(
             xdewarp,
@@ -401,11 +489,12 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
             )
             time.sleep(5)
 
-    f = h5py.File(output_file, "a")
-    f[output_dataset] = np.stack(result.get())
+    input_h5_file.close()
 
     end_time = time.time()
     logging.debug(f"Elapsed time (s): {end_time - start_time}")
+
+    return np.stack(result.get())
 
 
 if __name__ == '__main__':
@@ -423,12 +512,12 @@ if __name__ == '__main__':
     if args.noise_reduction not in valid_nr_methods:
         raise(
             f"{args.noise_reduction} is not a valid noise "
-            f"reduction option. Must be from {valid_nr_methods}. "
+            f"reduction option. Must be one of {valid_nr_methods}. "
             f"Using default value noise_reduction = 0.\n",
             UserWarning
         )
     else:
-        print(f"noise_reduction: {args.noise_reduction}")
+        logging.debug(f"noise_reduction: {args.noise_reduction}")
 
     input_data = ju.read(args.input_json)
     input_h5, output_h5, aL, aR, bL, bR = parse_input(input_data)
@@ -446,7 +535,7 @@ if __name__ == '__main__':
             return video to main
     """
 
-    run_dewarping(
+    dewarped_video = run_dewarping(
         FOVwidth=args.FOVwidth,
         noise_reduction=args.noise_reduction,
         threads=args.threads,
@@ -455,5 +544,9 @@ if __name__ == '__main__':
         output_file=output_h5,
         output_dataset="data"
     )
+
+    f = h5py.File(output_h5, "a")
+    f['data'] = dewarped_video
+    f.close()
 
     ju.write(args.output_json, {})
