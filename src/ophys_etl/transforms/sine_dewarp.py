@@ -3,7 +3,7 @@ import os
 import h5py
 import math
 import time
-import ophys_etl.utilities.json_utilities as json
+import json
 import argparse
 import logging
 import multiprocessing
@@ -519,7 +519,8 @@ if __name__ == '__main__':
     else:
         logging.debug(f"noise_reduction: {args.noise_reduction}")
 
-    input_data = json.read(args.input_json)
+    with open(args.input_json, 'r') as json_file:
+        input_data = json.load(json_file)
     input_h5, output_h5, aL, aR, bL, bR = parse_input(input_data)
 
     logging.debug("got parameters from json")
@@ -549,4 +550,5 @@ if __name__ == '__main__':
     f['data'] = dewarped_video
     f.close()
 
-    json.write(args.output_json, {})
+    with open(args.output_json, 'w') as outfile:
+        json.dump({}, outfile)
