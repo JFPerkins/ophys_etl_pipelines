@@ -420,7 +420,8 @@ def parse_input(data):
     return input_h5, output_h5, aL, aR, bL, bR
 
 
-def make_output_file(output_file, FOVwidth, movie_shape, movie_dtype):
+def make_output_file(output_file, output_dataset,
+                     FOVwidth, movie_shape, movie_dtype):
     """
 
     """
@@ -431,18 +432,18 @@ def make_output_file(output_file, FOVwidth, movie_shape, movie_dtype):
     dewarped_file = h5py.File(output_file, 'w')
     if FOVwidth == 512:
         dewarped_file.create_dataset(
-            "data", shape=movie_shape, dtype=movie_dtype
+            output_dataset, shape=movie_shape, dtype=movie_dtype
         )
     else:
         out_shape = [movie_shape[0], movie_shape[1], 512 - R - L]
         dewarped_file.create_dataset(
-            "data", shape=out_shape, dtype=movie_dtype
+            output_dataset, shape=out_shape, dtype=movie_dtype
         )
     dewarped_file.close()
 
 
 def run_dewarping(FOVwidth, noise_reduction, threads,
-                  input_file, output_file):
+                  input_file, input_dataset, output_file, output_dataset):
     """
     Gets information about the movie and the specified dewarping method,
     then uses multiprocessing to dewarp each frame of the movie at once, while
@@ -458,7 +459,7 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
 
     # Get statistics about the movie
     input_h5_file = h5py.File(input_file, 'r')
-    movie = input_h5_file["data"]
+    movie = input_h5_file[input_dataset]
     input_h5_file.close()
 
     movie_shape = movie.shape
@@ -468,13 +469,14 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
     # IMPORTANT!: estmated modevalue is from 8bit img but convert back to 16bit
     xtable = create_xtable(movie, aL, aR, bL, bR, noise_reduction)
 
-    make_output_file(output_file, FOVwidth, movie_shape, movie_dtype)
+    make_output_file(output_file, output_dataset,
+                     FOVwidth, movie_shape, movie_dtype)
 
     start_time = time.time()
     with multiprocessing.Pool(threads) as pool, h5py.File(output_h5, "a") as f:
         fn = functools.partial(
             xdewarp,
-            input_h5_file["data"],
+            input_h5_file[input_dataset],
             FOVwidth=FOVwidth,
             xtable=xtable,
             noise_reduction=noise_reduction
@@ -483,7 +485,7 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
         for frame, dewarped_frame in pool.imap_unordered(fn,
                                                          range(T),
                                                          chunksize=1000):
-            f['data'][frame, :, :] = dewarped_frame
+            f[output_dataset][frame, :, :] = dewarped_frame
 
     end_time = time.time()
     logging.debug(f"Elapsed time (s): {end_time - start_time}")
@@ -520,7 +522,9 @@ if __name__ == '__main__':
         noise_reduction=args.noise_reduction,
         threads=args.threads,
         input_file=input_h5,
+        input_dataset="data",
         output_file=output_h5,
+        output_dataset="data"
     )
 
     with open(args.output_json, 'w') as outfile:
