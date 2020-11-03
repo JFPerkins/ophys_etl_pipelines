@@ -414,8 +414,8 @@ def parse_input(data):
     bR = float(bRstr)
 
     logging.debug(str(equipment_name))
-    logging.debug('aL bL', aL, bL)
-    logging.debug('aR bR', aR, bR)
+    logging.debug(f"aL: {aL}   bL: {bL}")
+    logging.debug(f"aR: {aR}   bR: {bR}")
 
     return input_h5, output_h5, aL, aR, bL, bR
 
@@ -514,19 +514,6 @@ if __name__ == '__main__':
     with open(args.input_json, 'r') as json_file:
         input_data = json.load(json_file)
     input_h5, output_h5, aL, aR, bL, bR = parse_input(input_data)
-
-    logging.debug("got parameters from json")
-
-    """
-        New strategy:
-            read the data in under run_image,
-            split into all the frames there,
-            pass each frame as input to the xdewarp methods,
-            also pass the new "parameters" dict,
-            pool.map,
-            collect output from pool.map into one video,
-            return video to main
-    """
 
     run_dewarping(
         FOVwidth=args.FOVwidth,
