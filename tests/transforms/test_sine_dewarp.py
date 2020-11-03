@@ -64,11 +64,13 @@ def test_mode_extra_value():
 
 
 def test_xdewarp(random_sample_video, random_sample_xtable):
-    output = sine_dewarp.xdewarp(
-        imgin=random_sample_video[0],
+    frame, output = sine_dewarp.xdewarp(
+        frame=0,
+        data=random_sample_video,
         FOVwidth=512,
         xtable=random_sample_xtable,
         noise_reduction=0
     )
 
+    assert 0 == frame
     assert random_sample_video[0].shape == output.shape
