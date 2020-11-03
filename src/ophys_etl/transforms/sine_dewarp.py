@@ -460,7 +460,6 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
     # Get statistics about the movie
     input_h5_file = h5py.File(input_file, 'r')
     movie = input_h5_file[input_dataset]
-    input_h5_file.close()
 
     movie_shape = movie.shape
     movie_dtype = movie.dtype
@@ -486,6 +485,8 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
                                                          range(T),
                                                          chunksize=1000):
             f[output_dataset][frame, :, :] = dewarped_frame
+
+    input_h5_file.close()
 
     end_time = time.time()
     logging.debug(f"Elapsed time (s): {end_time - start_time}")
