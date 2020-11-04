@@ -64,7 +64,7 @@ def noise_reduce(data, ind, xindex, noise_reduction):
     """
     Noise reduce a numpy array by one of several methods, specified by
     the noise_reduction argument. The current acceptable values are:
-    - 0: Do nothing
+    - 0: No noise reduction
     - 1: Reduce the data value by 2 * sigma
     - 2: Reduce the data value by sigma and also normalize it
     - 3: Normalize the data value
@@ -107,7 +107,8 @@ def noise_reduce(data, ind, xindex, noise_reduction):
     return data
 
 
-def xdewarp(frame, data, FOVwidth, xtable, noise_reduction):
+def xdewarp(frame, input_file, input_dataset,
+            FOVwidth, xtable, noise_reduction):
     """
     Dewarp a single numpy array based on the information
     specified in table and noise_reduction.
@@ -130,8 +131,8 @@ def xdewarp(frame, data, FOVwidth, xtable, noise_reduction):
         The data, of the sme shape as the input data, having had the
         dewarping process applied to it
     """
-
-    imgin = data[frame, :, :]
+    input_h5_file = h5py.File(input_file, 'r')
+    imgin = input_h5_file[input_dataset][frame, :, :]
 
     # Grab a few commonly used values from xtable to make code cleaner
     xindexL = xtable['xindexL']
@@ -221,6 +222,7 @@ def xdewarp(frame, data, FOVwidth, xtable, noise_reduction):
     else:
         img = imgout[:, xtable['L']:512 - xtable['R']].astype(np.uint16)
 
+    input_h5_file.close()
     return frame, img
 
 
@@ -470,12 +472,14 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
 
     make_output_file(output_file, output_dataset,
                      FOVwidth, movie_shape, movie_dtype)
+    input_h5_file.close()
 
     start_time = time.time()
     with multiprocessing.Pool(threads) as pool, h5py.File(output_h5, "a") as f:
         fn = functools.partial(
             xdewarp,
-            input_h5_file[input_dataset],
+            input_file=input_file,
+            input_dataset=input_dataset,
             FOVwidth=FOVwidth,
             xtable=xtable,
             noise_reduction=noise_reduction
@@ -483,10 +487,8 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
 
         for frame, dewarped_frame in pool.imap_unordered(fn,
                                                          range(T),
-                                                         chunksize=1000):
+                                                         chunksize=100):
             f[output_dataset][frame, :, :] = dewarped_frame
-
-    input_h5_file.close()
 
     end_time = time.time()
     logging.debug(f"Elapsed time (s): {end_time - start_time}")
