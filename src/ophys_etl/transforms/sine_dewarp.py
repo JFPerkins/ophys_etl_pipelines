@@ -487,7 +487,7 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
 
         for frame, dewarped_frame in pool.imap_unordered(fn,
                                                          range(T),
-                                                         chunksize=100):
+                                                         chunksize=5000):
             f[output_dataset][frame, :, :] = dewarped_frame
 
     end_time = time.time()
@@ -499,7 +499,7 @@ if __name__ == '__main__':
     parser.add_argument('input_json')
     parser.add_argument('output_json')
     parser.add_argument('--log_level', default=logging.DEBUG)
-    parser.add_argument('--threads', default=4, type=int)
+    parser.add_argument('--threads', default=8, type=int)
     parser.add_argument('--FOVwidth', default=0, type=int)
     parser.add_argument('--noise_reduction', default=0, type=int)
     args = parser.parse_args()
