@@ -107,8 +107,7 @@ def noise_reduce(data, ind, xindex, noise_reduction):
     return data
 
 
-def xdewarp(frame, input_file, input_dataset,
-            FOVwidth, xtable, noise_reduction):
+def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
     """
     Dewarp a single numpy array based on the information
     specified in table and noise_reduction.
@@ -131,8 +130,8 @@ def xdewarp(frame, input_file, input_dataset,
         The data, of the sme shape as the input data, having had the
         dewarping process applied to it
     """
-    input_h5_file = h5py.File(input_file, 'r')
-    imgin = input_h5_file[input_dataset][frame, :, :]
+    # input_h5_file = h5py.File(input_file, 'r')
+    # imgin = input_h5_file[input_dataset][frame, :, :]
 
     # Grab a few commonly used values from xtable to make code cleaner
     xindexL = xtable['xindexL']
@@ -222,8 +221,18 @@ def xdewarp(frame, input_file, input_dataset,
     else:
         img = imgout[:, xtable['L']:512 - xtable['R']].astype(np.uint16)
 
-    input_h5_file.close()
-    return frame, img
+    return img
+
+
+def xdewarp_worker(frames, FOVwidth, xtable, noise_reduction):
+    """
+
+    """
+
+    return [
+        xdewarp(frames[i, :, :], FOVwidth, xtable, noise_reduction)
+        for i in range(frames.shape[0])
+    ]
 
 
 def get_xindex(a, b):
@@ -444,6 +453,20 @@ def make_output_file(output_file, output_dataset,
     dewarped_file.close()
 
 
+def split_input_movie(movie, chunk_size):
+    """
+    Splits the movie into chunks of roughly equal size, as close to the
+    specified chunk_size as possible
+
+    Parameters
+    ----------
+    Returns
+    -------
+    """
+
+    return np.array_split(movie, chunk_size, axis=0)
+
+
 def run_dewarping(FOVwidth, noise_reduction, threads,
                   input_file, input_dataset, output_file, output_dataset):
     """
@@ -472,22 +495,22 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
 
     make_output_file(output_file, output_dataset,
                      FOVwidth, movie_shape, movie_dtype)
+
+    movie_chunks = split_input_movie(movie, 1000)
     input_h5_file.close()
 
     start_time = time.time()
-    with multiprocessing.Pool(threads) as pool, h5py.File(output_h5, "a") as f:
+    with multiprocessing.Pool(threads) as pool, \
+         h5py.File(output_file, "a") as f:
+
         fn = functools.partial(
-            xdewarp,
-            input_file=input_file,
-            input_dataset=input_dataset,
+            xdewarp_worker,
             FOVwidth=FOVwidth,
             xtable=xtable,
             noise_reduction=noise_reduction
         )
 
-        for frame, dewarped_frame in pool.imap_unordered(fn,
-                                                         range(T),
-                                                         chunksize=5000):
+        for frame, dewarped_frame in enumerate(pool.starmap(fn, movie_chunks)):
             f[output_dataset][frame, :, :] = dewarped_frame
 
     end_time = time.time()
