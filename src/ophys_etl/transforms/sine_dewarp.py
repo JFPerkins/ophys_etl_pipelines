@@ -510,8 +510,12 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
             noise_reduction=noise_reduction
         )
 
-        for frame, dewarped_frame in enumerate(pool.starmap(fn, movie_chunks)):
-            f[output_dataset][frame, :, :] = dewarped_frame
+        num_processed = 0
+        for chunk in movie_chunks:
+            for frame, dewarped_frame in enumerate(pool.starmap(fn,
+                                                                movie_chunks)):
+                f[output_dataset][num_processed + frame, :, :] = dewarped_frame
+            num_processed = num_processed + len(chunk)
 
     end_time = time.time()
     logging.debug(f"Elapsed time (s): {end_time - start_time}")
