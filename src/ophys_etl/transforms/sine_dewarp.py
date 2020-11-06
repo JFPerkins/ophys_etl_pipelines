@@ -224,17 +224,6 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
     return img
 
 
-def xdewarp_worker(frames, FOVwidth, xtable, noise_reduction):
-    """
-
-    """
-
-    return [
-        xdewarp(frames[i, :, :], FOVwidth, xtable, noise_reduction)
-        for i in range(frames.shape[0])
-    ]
-
-
 def get_xindex(a, b):
     """
     Generate the xinxex arrays that will be used in the dewarping process.
@@ -453,20 +442,6 @@ def make_output_file(output_file, output_dataset,
     dewarped_file.close()
 
 
-def split_input_movie(movie, chunk_size):
-    """
-    Splits the movie into chunks of roughly equal size, as close to the
-    specified chunk_size as possible
-
-    Parameters
-    ----------
-    Returns
-    -------
-    """
-
-    return np.array_split(movie, chunk_size, axis=0)
-
-
 def run_dewarping(FOVwidth, noise_reduction, threads,
                   input_file, input_dataset, output_file, output_dataset):
     """
@@ -496,26 +471,32 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
     make_output_file(output_file, output_dataset,
                      FOVwidth, movie_shape, movie_dtype)
 
-    movie_chunks = split_input_movie(movie, 1000)
-    input_h5_file.close()
-
     start_time = time.time()
     with multiprocessing.Pool(threads) as pool, \
          h5py.File(output_file, "a") as f:
 
         fn = functools.partial(
-            xdewarp_worker,
+            xdewarp,
             FOVwidth=FOVwidth,
             xtable=xtable,
             noise_reduction=noise_reduction
         )
 
+        chunk_size = 1000
         num_processed = 0
-        for chunk in movie_chunks:
+        for chunk in range(0, T, chunk_size):
+            if chunk + chunk_size < T:
+                movie_chunk = movie[chunk:(chunk + chunk_size), :, :]
+            else:
+                movie_chunk = movie[chunk:, :, :]
+
             for frame, dewarped_frame in enumerate(pool.starmap(fn,
-                                                                movie_chunks)):
+                                                                movie_chunk)):
                 f[output_dataset][num_processed + frame, :, :] = dewarped_frame
-            num_processed = num_processed + len(chunk)
+
+            num_processed = num_processed + chunk
+
+    input_h5_file.close()
 
     end_time = time.time()
     logging.debug(f"Elapsed time (s): {end_time - start_time}")
