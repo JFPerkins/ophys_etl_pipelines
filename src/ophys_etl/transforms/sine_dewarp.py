@@ -459,7 +459,7 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
     # IMPORTANT!: estmated modevalue is from 8bit img but convert back to 16bit
     xtable = create_xtable(movie, aL, aR, bL, bR, noise_reduction)
 
-    make_output_file(output_file, output_dataset,
+    make_output_file(output_file, output_dataset, xtable,
                      FOVwidth, movie_shape, movie_dtype)
 
     start_time = time.time()
