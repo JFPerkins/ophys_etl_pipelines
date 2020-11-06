@@ -11,21 +11,8 @@ import functools
 
 
 # Default parameters
-mean_modevalue = 0.0
-stdv_modevalue = 0.0
-bgfactorL = 0.0
-bgfactorR = 0.0
-L = 0
-R = 0
-
 minvalue = 0.0
 maxlevel = 65535  # 16bit
-
-# Default is 2P.4 parameters
-aL = 160.0
-aR = 160.0
-bL = 95.0
-bR = 110.0
 
 valid_nr_methods = [0, 1, 2, 3]
 
@@ -60,7 +47,7 @@ def mode(data):
     return modelist, maxcount
 
 
-def noise_reduce(data, ind, xindex, noise_reduction):
+def noise_reduce(data, xtable, ind, xindex, noise_reduction):
     """
     Noise reduce a numpy array by one of several methods, specified by
     the noise_reduction argument. The current acceptable values are:
@@ -91,14 +78,14 @@ def noise_reduce(data, ind, xindex, noise_reduction):
 
     elif 1 == noise_reduction:
         nf = (
-            2 * stdv_modevalue
+            2 * xtable['stdv_modevalue']
             * (xindex[ind] - xindex[ind - 1] - 1)
         )
 
         data = data - nf
 
     elif 2 == noise_reduction:
-        nf = 1 * stdv_modevalue * (xindex[ind] - xindex[ind - 1] - 1)
+        nf = 1 * xtable['stdv_modevalue'] * (xindex[ind] - xindex[ind - 1] - 1)
         data = (data / (xindex[ind] - xindex[ind - 1])) - nf
 
     elif 3 == noise_reduction:
@@ -162,7 +149,7 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
                     sum[:] = sum[:] + imgin[:, s+1]
 
                 # Perform the desired noise reduction method
-                sum = noise_reduce(sum, j, xindexLB, noise_reduce)
+                sum = noise_reduce(sum, xtable, j, xindexLB, noise_reduction)
 
                 # TODO: Check on this. Make sure it wasn't an
                 # error in the orginal code
@@ -196,7 +183,7 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
                     sum[:] = sum[:] + imgin[:, 511 - (s + 1)]
 
                 # Perform the desired noise reduction method
-                sum = noise_reduce(sum, j, xindexRB, noise_reduce)
+                sum = noise_reduce(sum, xtable, j, xindexRB, noise_reduction)
 
                 # TODO: Check on this. Make sure it wasn't an
                 # error in the orginal code
@@ -420,7 +407,7 @@ def parse_input(data):
     return input_h5, output_h5, aL, aR, bL, bR
 
 
-def make_output_file(output_file, output_dataset,
+def make_output_file(output_file, output_dataset, xtable,
                      FOVwidth, movie_shape, movie_dtype):
     """
 
@@ -435,7 +422,11 @@ def make_output_file(output_file, output_dataset,
             output_dataset, shape=movie_shape, dtype=movie_dtype
         )
     else:
-        out_shape = [movie_shape[0], movie_shape[1], 512 - R - L]
+        out_shape = [
+            movie_shape[0],
+            movie_shape[1],
+            512 - xtable['R'] - xtable['L']
+        ]
         dewarped_file.create_dataset(
             output_dataset, shape=out_shape, dtype=movie_dtype
         )
@@ -483,18 +474,16 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
         )
 
         chunk_size = 1000
-        num_processed = 0
         for chunk in range(0, T, chunk_size):
             if chunk + chunk_size < T:
-                movie_chunk = movie[chunk:(chunk + chunk_size), :, :]
+                movie_chunk = [
+                    movie[m, :, :] for m in range(chunk, chunk + chunk_size)
+                ]
             else:
-                movie_chunk = movie[chunk:, :, :]
+                movie_chunk = [movie[m, :, :] for m in range(chunk, T)]
 
-            for frame, dewarped_frame in enumerate(pool.starmap(fn,
-                                                                movie_chunk)):
-                f[output_dataset][num_processed + frame, :, :] = dewarped_frame
-
-            num_processed = num_processed + chunk
+            for frame, dewarped_frame in enumerate(pool.map(fn, movie_chunk)):
+                f[output_dataset][chunk + frame, :, :] = dewarped_frame
 
     input_h5_file.close()
 
