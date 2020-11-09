@@ -128,12 +128,14 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
 
     # Prepare a blank image
     imgout = np.zeros(imgin.shape)
-    imgout[:, (int(aL)):(512-(int(aR)))] = imgin[:, (int(aL)):(512-(int(aR)))]
+    # TODO Should this also be done for the right side
+    imgout[:, (int(xtable['aL'])):(512-(int(xtable['aR'])))] = \
+        imgin[:, (int(xtable['aL'])):(512-(int(xtable['aR'])))]
 
     sum = np.zeros(imgin.shape[0], np.float)
 
     # Left side
-    for j in range(0, int(aL)):
+    for j in range(0, int(xtable['aL'])):
         sum[:] = 0.0  # reset
         if xindexL[j] >= 0:
             if xindexLB[j - 1] >= 0.0:
@@ -167,7 +169,7 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
             imgout[:, j] = xtable['mean_modevalue'] * xtable['bgfactorL']
 
     # Right side
-    for j in range(0, (int(aR))):
+    for j in range(0, int(xtable['aR'])):
         sum[:] = 0.0
         if xindexR[j] >= 0:
             if xindexRB[j - 1] >= 0.0:
@@ -344,7 +346,11 @@ def create_xtable(movie, aL, aR, bL, bR, noise_reduction):
         "xindexL": xindexL,
         "xindexLB": xindexLB,
         "xindexR": xindexR,
-        "xindexRB": xindexRB
+        "xindexRB": xindexRB,
+        "aL": aL,
+        "aR": aR,
+        "bL": bL,
+        "bR": bR
     }
     logging.debug(table)
 

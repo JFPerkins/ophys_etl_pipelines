@@ -1,5 +1,5 @@
+import h5py
 import numpy as np
-import pandas as pd
 import pytest
 
 from ophys_etl.transforms import sine_dewarp
@@ -64,13 +64,47 @@ def test_mode_extra_value():
 
 
 def test_xdewarp(random_sample_video, random_sample_xtable):
-    frame, output = sine_dewarp.xdewarp(
-        frame=0,
-        data=random_sample_video,
+    output = sine_dewarp.xdewarp(
+        imgin=random_sample_video[0, :, :],
         FOVwidth=512,
         xtable=random_sample_xtable,
         noise_reduction=0
     )
 
-    assert 0 == frame
     assert random_sample_video[0].shape == output.shape
+
+
+def dewarp_regression_test():
+    old_dewarped_video = h5py.File(
+        './resources/dewarping_regression_test_output.h5', 'r'
+    )
+
+    input_video = h5py.File(
+        './resources/dewarping_regression_test_input.h5', 'r'
+    )
+
+    xtable = sine_dewarp.create_xtable(
+        movie=old_dewarped_video['data'],
+        aL=160.0,
+        aR=150.0,
+        bL=85.0,
+        bR=100.0,
+        noise_reduction=3
+    )
+
+    new_dewarped_video = []
+    for frame in range(input_video['data'].shape[0]):
+        new_dewarped_video.append(
+            sine_dewarp.xdewarp(
+                imgin=input_video['data'][frame, :, :],
+                FOVwidth=0,
+                xtable=xtable,
+                noise_reduction=3
+            )
+        )
+    new_dewarped_video = np.stack(new_dewarped_video)
+
+    np.assert_array_equal(
+        old_dewarped_video['data'],
+        new_dewarped_video
+    )
