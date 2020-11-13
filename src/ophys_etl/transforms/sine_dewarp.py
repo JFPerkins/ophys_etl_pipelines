@@ -117,8 +117,9 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
         The data, of the sme shape as the input data, having had the
         dewarping process applied to it
     """
-    # input_h5_file = h5py.File(input_file, 'r')
-    # imgin = input_h5_file[input_dataset][frame, :, :]
+
+    # import pdb
+    # pdb.set_trace()
 
     # Grab a few commonly used values from xtable to make code cleaner
     xindexL = xtable['xindexL']
@@ -196,7 +197,7 @@ def xdewarp(imgin, FOVwidth, xtable, noise_reduction):
                 high_mask = (sum > maxlevel)
                 sum[high_mask] = maxlevel  # saturated?  for max image==1.0
 
-                imgout[:, j] = sum
+                imgout[:, 511 - j] = sum
             else:
                 imgout[:, 511 - j] = (
                     imgin[:, 511 - xindexR[j]]
@@ -406,9 +407,9 @@ def parse_input(data):
         raise KeyError(f"parameter bR not determined for {equipment_name}")
     bR = float(bRstr)
 
-    logging.debug(str(equipment_name))
-    logging.debug(f"aL: {aL}   bL: {bL}")
-    logging.debug(f"aR: {aR}   bR: {bR}")
+    logging.debug(f"Equipment name: {str(equipment_name)}")
+    logging.debug(f"aL: {aL}   aR: {aR}")
+    logging.debug(f"bL: {bL}   bR: {bR}")
 
     return input_h5, output_h5, aL, aR, bL, bR
 
@@ -416,7 +417,14 @@ def parse_input(data):
 def make_output_file(output_file, output_dataset, xtable,
                      FOVwidth, movie_shape, movie_dtype):
     """
+    Creates the output h5 file, and ensures that it has a Dataset
+    of the correct size for the dewarped movie.
 
+    Parameters
+    ----------
+    FOVwidth: int
+        Field of View width, a parameter of the experiment.
+    Returns
     """
     # Remove old output if it exists and create new output file
     if os.path.exists(output_file):
@@ -439,8 +447,8 @@ def make_output_file(output_file, output_dataset, xtable,
     dewarped_file.close()
 
 
-def run_dewarping(FOVwidth, noise_reduction, threads,
-                  input_file, input_dataset, output_file, output_dataset):
+def run_dewarping(FOVwidth, noise_reduction, threads, input_file,
+                  input_dataset, output_file, output_dataset, aL, aR, bL, bR):
     """
     Gets information about the movie and the specified dewarping method,
     then uses multiprocessing to dewarp each frame of the movie at once, while
@@ -462,7 +470,7 @@ def run_dewarping(FOVwidth, noise_reduction, threads,
     movie_dtype = movie.dtype
     T, y_orig, x_orig = movie.shape
 
-    # IMPORTANT!: estmated modevalue is from 8bit img but convert back to 16bit
+    # IMPORTANT: estimated modevalue is from 8bit img but convert back to 16bit
     xtable = create_xtable(movie, aL, aR, bL, bR, noise_reduction)
 
     make_output_file(output_file, output_dataset, xtable,
@@ -530,7 +538,8 @@ if __name__ == '__main__':
         input_file=input_h5,
         input_dataset="data",
         output_file=output_h5,
-        output_dataset="data"
+        output_dataset="data",
+        aL=aL, aR=aR, bL=bL, bR=bR
     )
 
     with open(args.output_json, 'w') as outfile:
